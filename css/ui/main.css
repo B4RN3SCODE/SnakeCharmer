@@ -1,0 +1,19 @@
+/* css for snake charmer ui */
+
+/** nav stuff **/
+
+.main .navbar .container .navlogoff {
+float: right;
+margin: 10px;
+}
+
+/** end nav **/
+
+/** home **/
+
+.main .container .account-opts { padding: 15px; }
+
+/** end home **/
+
+
+.main .container .login-main { margin-top: 200px; }

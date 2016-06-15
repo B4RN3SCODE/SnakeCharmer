@@ -1,0 +1,5 @@
+*.sql
+include/config.php
+include/admin.config.php
+*.log
+admin/
