@@ -1,5 +1,5 @@
 /*
- * SC
+ * SnakeCharmer
  * Snake Charmer Application
  *
  * @author		Tyler J Barnes
@@ -23,7 +23,7 @@
  * @param config object with config values
  * @return void
  */
-var SC = function(config) {
+var SnakeCharmer = function(config) {
 	// version
 	this._version = '1.1.2';
 	// config
@@ -119,6 +119,15 @@ var SC = function(config) {
 	this._loadedPlugins = [];
 
 
+	// this is sorta hacky but need it for now
+	this._notificationDataCompleteEventListenerSet = false;
+	// event anem
+	this._notificationDataCompleteEventName = 'notifdatacomplete';
+
+	// plugin load event
+	this._pluginLoadedEventName = 'pluginloadcomplete';
+
+
 
 
 
@@ -172,12 +181,13 @@ var SC = function(config) {
 
 		this._defaultPageTitle = this._$('title').text();
 
-		this.getThemeData();
 
-		/*	TODO fix this functionality to load plugins after redesigned	*/
 		if(this._loadPlugins.length > 0) {
-			this.loadPlugins();
+			this.setUpPluginLoad();
 		}
+
+
+		this.getThemeData();
 
 	};
 
@@ -265,7 +275,7 @@ var SC = function(config) {
 				}
 				d = args[i];
 				if(!has_data) {
-					console.warn('No data passed to SC.ajax function [empty object]. Sending request with no data');
+					console.warn('No data passed to SnakeCharmer.ajax function [empty object]. Sending request with no data');
 				}
 
 
@@ -513,8 +523,16 @@ var SC = function(config) {
 
 		} // END for loop for events
 
+
+		if(this._notificationDataCompleteEventListenerSet) {
+			this._$(document).trigger(this._notificationDataCompleteEventName);
+		}
+
 		return true;
 	};
+
+
+
 
 
 
@@ -888,6 +906,32 @@ var SC = function(config) {
 
 
 	/*
+	 * getEventCriteria
+	 * gets the event criteria if there is any
+	 *
+	 * @return array of event criteria
+	 */
+	this.getEventCriteria = function() {
+		var criteria = [];
+
+		for(var i = 0; i < this._notificationData.page_event.length; i++) {
+
+			if(!!this._notificationData.page_event[i].Criteria && !(typeof this._notificationData.page_event[i].Criteria == 'undefined') &&
+				this._notificationData.page_event[i].Criteria != null) {
+
+				criteria.push({eventId: this._notificationData.page_event[i].EID, criteria: JSON.parse(this._notificationData.page_event[i].Criteria)});
+
+			}
+
+		}
+
+		return criteria;
+	};
+
+
+
+
+	/*
 	 * timeOut
 	 * adds a timeout to execute a time-based event
 	 *
@@ -908,7 +952,7 @@ var SC = function(config) {
 
 		var me = this;
 		setTimeout(function() {
-			me.handleTimeOutOrCrit(eid);
+			me.handleTimeOutOrCriteria(eid);
 		}, (parseFloat(to)*1000));
 
 	};
@@ -917,14 +961,14 @@ var SC = function(config) {
 
 
 	/*
-	 * handleTimeOutOrCrit
+	 * handleTimeOutOrCriteria
 	 * handles timeout logic or events that are
 	 * fired based on criteria
 	 *
 	 * @param eid event id
 	 * @return custom event name
 	 */
-	this.handleTimeOutOrCrit = function(eid) {
+	this.handleTimeOutOrCriteria = function(eid) {
 		if(!eid || eid < 1) {
 			return void 0;
 		}
@@ -1718,6 +1762,23 @@ var SC = function(config) {
 
 
 	/*
+	 * setUpPluginLoad
+	 * sets up event for things to do other things
+	 *
+	 * @return void
+	 */
+	this.setUpPluginLoad = function() {
+		this._notificationDataCompleteEventListenerSet = true;
+		var me = this;
+		$(document).on(this._notificationDataCompleteEventName, function() {
+			me.loadPlugins();
+		});
+	};
+
+
+
+
+	/*
 	 * pluginLoaded
 	 * checks to see if plugin load function has already been
 	 * called
@@ -1750,7 +1811,7 @@ var SC = function(config) {
 			for(var p = 0; p < this._plugins.length; p++) {
 				if(!this.pluginLoaded(this._plugins[p]._pluginId)) {
 					try {
-						this._plugins[p].load();
+						this._plugins[p].load(this._pluginLoadedEventName);
 						this._loadedPlugins.push(this._plugins[p]._pluginId);
 					} catch(e) {
 						console.log(e);
@@ -1765,7 +1826,7 @@ var SC = function(config) {
 					if(this._plugin[p]._pluginId == ids[id]) {
 						if(!this.pluginLoaded(ids[id])) {
 							try {
-								this._plugins[p].load();
+								this._plugins[p].load(this._pluginLoadedEventName);
 								this._loadedPlugins.push(this._plugins[p]._pluginId);
 							} catch(e) {
 								console.log(e);
@@ -1863,6 +1924,62 @@ var SC = function(config) {
 
 
 	/*
+	 * pluginApply
+	 * calls a function found in a plugin...
+	 * *BETA* prob gonna remove
+	 *
+	 * @param pluginFunc string plugin_name.function
+	 * @param data (object) data to pass to function
+	 * @return void
+	 */
+	this.pluginApply = function(pluginFunc, data) {
+		var targetInfo = pluginFunc.split('.');
+		if(targetInfo.length != 2) {
+			console.log('SC: cannot apply function with params:', pluginFunc, data);
+			return void 0;
+		}
+
+		var pluginName = targetInfo[0];
+		var func = targetInfo[1];
+
+		var has_plugin = false;
+
+		for(var i = 0; i < this._plugins.length; i++) {
+			if(this._plugins[i]._pluginName.toLowerCase() == pluginName.toLowerCase() && typeof this._plugins[i][func] == 'function') {
+				has_plugin = true;
+				this._plugins[i][func](data);
+				break;
+			}
+		}
+
+		if(!has_plugin) {
+			console.log('SC: could not find plugin/function', pluginFunc, data);
+		}
+
+	};
+
+
+
+
+	/*
+	 * pluginBind
+	 * binds event/function call to plugin
+	 *
+	 * @param pluginFunc string plugin_name.function
+	 * @param data (object) data to pass to function
+	 * @return void
+	 */
+	this.pluginBind = function(pluginFunc, data) {
+		var me = this;
+		$(document).on(this._pluginLoadedEventName, function() {
+			me.pluginApply(pluginFunc, data);
+		});
+	};
+
+
+
+
+	/*
 	 * reportEventFailure
 	 * reports that there was an error when trying to store
 	 * triggered event data
@@ -1933,13 +2050,13 @@ var SC = function(config) {
 // END SC
 
 if('undefined' == typeof jQuery || !jQuery) {
-	(new SC).reportDependencies();
+	(new SnakeCharmer).reportDependencies();
 } else {
 
 	// auto initialize
 	jQuery(document).ready(function() {
 		if(typeof window.SC_AUTO_INIT == 'undefined' || window.SC_AUTO_INIT !== false) {
-			(window.SC = new SC()).ini();
+			(window.SC = new SnakeCharmer()).ini();
 		}
 	});
 	// end auto initialize
