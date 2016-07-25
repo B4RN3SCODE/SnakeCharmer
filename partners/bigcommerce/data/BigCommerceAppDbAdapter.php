@@ -646,6 +646,36 @@ class BigCommerceAppDbAdapter {
 
 
 
+
+	/*
+	 * scAccountHasTheme
+	 * Checks to see if a theme is already created for
+	 * an account
+	 *
+	 * @param scaid int sc account ID
+	 * @return true if theme already created
+	 */
+	public function scAccountHasTheme($scaid = 0) {
+		if(!is_numeric($scaid) || $scaid < 1) {
+			throw new Exception("Cannot check for them with invalid SC Account ID");
+		}
+
+		$scaid = $this->_db->EscapeQueryStmt($scaid);
+
+		$sql = "SELECT COUNT(*) AS TOT FROM Theme WHERE AccId = {$scaid}";
+		if(!$this->_db->Query($sql)) {
+			//TODO HANDLE
+			return false;
+		}
+
+		$tot = $this->_db->GetRow();
+
+		return (isset($tot["TOT"]) && intval($tot["TOT"]) > 0);
+	}
+
+
+
+
 	 /*
 	  * getBigCommerceAccountInfo
 	  * Gets basic BCAcc info

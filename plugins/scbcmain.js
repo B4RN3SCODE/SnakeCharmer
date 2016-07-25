@@ -41,6 +41,7 @@ var SCBCMain = function() {
 	this._cart = void 0;
 	this._cartId = 'SCBCCart';
 	this._cartItemName = 'SCBCCartItem';
+	this._cartTotal = 0.0;
 
 	// products ( array of objects {product ID : id, cart count : product count, viewed: true|false} )
 	this._products = [];
@@ -53,26 +54,20 @@ var SCBCMain = function() {
 
 
 
-	/////////////////////////////////////////////
-	// TODO: figure out if these will be needed
-	// to track which types of criteria was met
-	/////////////////////////////////////////////
-	//		this._viewedProductsMet = [];
-	//		this._cartProductsMet = [];
-	/////////////////////////////////////////////
-	/////////////////////////////////////////////
-
-
-
 	// data attributes
 	this._dataAttributes = {
 		productId: 'prodid',
-		cartCount: 'prodqty'
+		cartCount: 'prodqty',
+		productPrice: 'prodprice'
 	};
 
 	// track type of criteria events
 	this._hasCartProducts = false;
 	this._hasViewedProducts = false;
+
+	// cookie name
+	this._cookieName = 'scbcmainet';
+	this._cookieValue = [];
 
 
 
@@ -94,6 +89,9 @@ var SCBCMain = function() {
 			return void 0;
 		}
 
+		this.getCookieVal();
+
+
 		// get event criteria from SC
 		this.getCriteria();
 		// get the cart
@@ -106,6 +104,7 @@ var SCBCMain = function() {
 
 		if(!!event) {
 			$(document).trigger(event);
+			window.SC.removePluginLoadedEvent(this._pluginName);
 		}
 
 
@@ -114,6 +113,22 @@ var SCBCMain = function() {
 		}
 
 	};
+
+
+
+
+	/*
+	 * getCookieVal
+	 * Gets the cookie value
+	 *
+	 * @return void
+	 */
+	this.getCookieVal = function() {
+		var tmpCookie = window.SC.getCookie(this._cookieName);
+		this._cookieValue = (!!tmpCookie && tmpCookie.length > 0) ? JSON.parse(tmpCookie) : [];
+	};
+
+
 
 
 
@@ -136,28 +151,54 @@ var SCBCMain = function() {
 
 
 	/*
+	 * calculateCartTotal
+	 * Calculates the total cart price
+	 *
+	 * @return void
+	 */
+	this.calculateCartTotal = function() {
+		var tot = 0.0;
+		for(var i = 0; i < this._products.length; i++) {
+			if(this._products[i].productPrice && typeof this._products[i].productPrice != 'undefined' && this._products[i].productPrice > 0) {
+				tot += this._products[i].productPrice;
+			}
+		}
+		this._cartTotal = tot;
+	};
+
+
+
+
+	/*
 	 * addProduct
 	 * Adds a product to the array of products
 	 *
 	 * @param productid product id
 	 * @param cartcount cart count (default 0)
+	 * @param price item price
 	 * @param viewed boolean true for product view (default false)
 	 * @return void
 	 */
-	this.addProduct = function(productid, cartcount, viewed) {
+	this.addProduct = function(productid, cartcount, price, viewed) {
 		if(!productid || typeof productid == 'undefined' || productid < 1) {
 			return void 0;
 		}
 		cartcount = (!!cartcount && cartcount > 0) ? cartcount : 0;
+		price = (!!price && price > 0) ? price : 0;
 		viewed = (viewed === true);
 		if(!this.hasProduct(productid)) {
 			this._products.push({
 				id: productid,
 				cartCount: cartcount,
+				productPrice: price,
 				viewed: viewed
 			});
 		} else {
-			this.updateProduct(productid, {cartCount: cartcount, viewed: viewed});
+			var obj = {};
+			if(cartcount > 0) { obj.cartCount = cartcount; }
+			if(price > 0) { obj.productPrice = price; }
+			obj.viewed = viewed;
+			this.updateProduct(productid, obj);
 		}
 	};
 
@@ -205,7 +246,7 @@ var SCBCMain = function() {
 
 		// if doesnt exist create it
 		if(!this.hasProduct(productid)) {
-			this.addProduct(productid, 0, false);
+			this.addProduct(productid, 0, 0, false);
 		}
 
 
@@ -254,8 +295,12 @@ var SCBCMain = function() {
 		if(productList.length > 0) {
 			this._hasCartProducts = true;
 			for(var i = 0; i < productList.length; i++) {
-				this.addProduct(parseInt($(productList[i]).data(this._dataAttributes.productId)), parseInt($(productList[i]).data(this._dataAttributes.cartCount)));
+				this.addProduct(parseInt($(productList[i]).data(this._dataAttributes.productId)), parseInt($(productList[i]).data(this._dataAttributes.cartCount)), parseFloat($(productList[i]).data(this._dataAttributes.productPrice).replace(/[^0-9|\.]/g, '')));
 			}
+		}
+
+		if(this._hasCartProducts) {
+			this.calculateCartTotal();
 		}
 
 	};
@@ -274,7 +319,7 @@ var SCBCMain = function() {
 			console.log('SCBCMain : cannot mark product as viewed ['+productId+']');
 			return void 0;
 		}
-		this.addProduct(productId, 0, true);
+		this.addProduct(productId, 0, 0, true);
 		this._hasViewedProducts = true;
 	};
 
@@ -300,16 +345,30 @@ var SCBCMain = function() {
 			// criter is met based on products
 			for(var j = 0; j < tmpC.criteria.length; j++) {
 
+
+				// check cart total criteria
+				if(tmpC.criteria[j].cartTotal && typeof tmpC.criteria[j].cartTotal != 'undefined' && tmpC.criteria[j].cartTotal > 0) {
+
+					if(this._cartTotal >= tmpC.criteria[j].cartTotal) {
+						this._eventCriteriaMet.push(tmpC.eventId);
+					}
+
+				}
+
+
 				// iterate through all products and check against current criteria
 				for(var k = 0; k < this._products.length; k++) {
 
 					var tmpP = this._products[k]; // temp product
 
+
 					// if products match, check rest of criteria
 					if(tmpP.id == tmpC.criteria[j].productId) {
 
+
 						// check viewed products
 						if(tmpC.criteria[j].viewed && typeof tmpC.criteria[j].viewed != 'undefined' && tmpC.criteria[j].viewed == true) {
+
 							if(tmpP.viewed == true) {
 								// TODO see if should uncomment the following or change it to
 								// use products id or something
@@ -364,8 +423,124 @@ var SCBCMain = function() {
 	 * @return void
 	 */
 	this.triggerEvents = function() {
+		window.SC._playNotificationSound = false;
+		var triggerClick = false;
 		for(var i = 0; i < this._eventCriteriaMet.length; i++) {
+			if(!this.inCookieArray(this._eventCriteriaMet[i])) {
+				window.SC._playNotificationSound = true;
+				triggerClick = true;
+			}
 			window.SC.handleTimeOutOrCriteria(this._eventCriteriaMet[i]);
+		}
+		if(triggerClick) {
+			$('.chatbox').click();
+		}
+
+		this.updateCookie();
+	};
+
+
+
+	/*
+	 * inCookieArray
+	 * Checks to see if an event is already been cookied
+	 *
+	 * @param eid event ID
+	 * @return true if exists in cookie
+	 */
+	this.inCookieArray = function(eid) {
+		for(var i = 0; i < this._cookieValue.length; i++) {
+			if(this._cookieValue[i] == eid) {
+				return true;
+			}
+		}
+		return false;
+	};
+
+
+
+	/*
+	 * updateCookie
+	 * Updates the cookie to track seen notifications
+	 * using SC.setCookie function
+	 *
+	 * @return void
+	 */
+	this.updateCookie = function() {
+		var cookieChanged = false;
+		for(var i = 0; i < this._eventCriteriaMet.length; i++) {
+			if(!this.inCookieArray(this._eventCriteriaMet[i])) {
+				this._cookieValue.push(this._eventCriteriaMet[i]);
+				cookieChanged = true;
+			}
+		}
+		if(cookieChanged) {
+			window.SC.setCookie(this._cookieName, JSON.stringify(this._cookieValue), 30);
+		}
+	};
+
+
+
+
+
+	/*
+	 * promoConvert
+	 * Tracks a conversion for promotion
+	 *
+	 * @param eid event ID
+	 * @return void
+	 */
+	this.promoConvert = function(eid) {
+		var othVar = [];
+		var pt = (!eid || typeof eid == 'undefined' || eid < 1) ? 'other' : this.getPromoType(eid);
+		if(!!pt && pt.length > 0) {
+			othVar.push({promoType: pt});
+		}
+		window.SC.pluginBind('SCTracker.updateCookie', [eid, {converted: true, promoType: pt}]);
+		window.SC.pluginBind('SCTracker.setUpConvert', [false, 0, othVar]);
+	};
+
+
+
+
+	/*
+	 * getPromoType
+	 * Gets the promo type
+	 *
+	 * @param eid event ID
+	 * @return string promoType
+	 */
+	this.getPromoType = function(eid) {
+		for(var i = 0; i < this._eventCriteria.length; i++) {
+			if(this._eventCriteria[i].eventId == eid) {
+				return this._eventCriteria[i].promoType;
+			}
+		}
+		return '';
+	};
+
+
+
+
+	/*
+	 * promoClick
+	 * Action to take when promo clicked
+	 *
+	 * @param elms elements
+	 * @return void
+	 */
+	this.promoClick = function(elms) {
+		if(elms.length < 1) { this.promoConvert(-1); }
+		if(elms.length > 1) {
+			var me = this;
+			$.each(elms, function(i,e) {
+				var v = $(e).data('evid');
+				me.promoConvert(v);
+				return void 0;
+			});
+		} else {
+			var v = $(elms[0]).data('evid');
+			this.promoConvert(v);
 		}
 	};
 

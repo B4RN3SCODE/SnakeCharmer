@@ -19,15 +19,7 @@
 
 
 
-<script type="text/javascript">window.SC_AUTO_INIT=false;</script>
-<script type="text/javascript" id="SCJS" src="//sc.conversionvoodoo.com/js/sc.js?license=l7KnBVV880aB&themeId=3&ghost=true"></script>
-<script type="text/javascript">
-window.SC = new SC();
-window.SC._loadPlugins.push('http://sc.conversionvoodoo.com/plugins/test.js','http://sc.conversionvoodoo.com/plugins/sctracker.js');
-window.SC.ini();
-</script>
-
-
+<script type="text/javascript" id="SCJS" src="//sc.conversionvoodoo.com/js/sc122.tr.js?license=l7KnBVV880aB&themeId=3"></script>
 
 <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
 <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -179,6 +171,9 @@ window.SC.ini();
     </div>
   </div>
 </div>
+<script>
+//window.SC.pluginBind('SCTracker.setUpConvert', [false, 0]);
+</script>
 </body>
 </html>
 

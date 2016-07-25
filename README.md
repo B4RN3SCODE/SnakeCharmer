@@ -35,9 +35,9 @@ and other information)
 **Framework**:
 
  - Initialization
-	- SnakeCharmer will auto initialize once the page is loaded.  To avoid the application from auto init'ing, before the script is loaded, set `window.SC_AUTO_INIT = false;` *(either in a script tag or in a JS file loaded before SC)*.
+	- SnakeCharmer will auto initialize once the page is loaded.  To avoid the application from auto init'ing, before the script is loaded, set `window.SC_AUTO_INIT = false;` *(either in a script tag or in a JS file loaded before SnakeCharmer)*.
 	- Auto-Initialization: quick, simple. This will use default config and property values to construct the application. Querying for the theme and notification data, setting the theme and events up, and triggering listeners will be performed automatically.  **Once the app is loaded and initialized you cannot modify aspects of the app**.
-	- Manual-Initialization: flexible, added capabilities. If a user decides to manually initialize SC, they are able to change the way the application performs. User can create custom events, custom notifications, and tigger those events to display the notifications.  The user can do more simple things like change the notification sound, also.
+	- Manual-Initialization: flexible, added capabilities. If a user decides to manually initialize SnakeCharmer, they are able to change the way the application performs. User can create custom events, custom notifications, and tigger those events to display the notifications.  The user can do more simple things like change the notification sound, also.
 
  - Theme
 	- Getting Theme Data: Getting theme data will generate a script tag with the theme data.  This script tag will call a function to set up the theme.
@@ -68,7 +68,7 @@ and other information)
 	- manual init (if `window.SC_AUTO_INIT` is set to `false`)
 
 	```javascript
-	window.SC = new SC(); // create object
+	window.SC = new SnakeCharmer(); // create object
 	window.SC.ini(); // init
 	```
 
@@ -78,7 +78,7 @@ and other information)
 		license: "<lic string>",
 		themeId: "<id>",
 	};
-	window.SC = new SC(conf); // create object
+	window.SC = new SnakeCharmer(conf); // create object
 	window.SC.ini(); // init
 	```
 
@@ -114,7 +114,7 @@ and other information)
 		- *after SC JS file is loaded*
 
 		```javascript
-		window.SC = new SC(); // create object
+		window.SC = new SnakeCharmer(); // create object
 		window.SC._notificationSoundFile = '//path.to/file.mp3'; // changes the file
 		window.SC.ini(); // init the app
 		```
@@ -128,7 +128,7 @@ and other information)
 		- *after SC JS file is loaded*
 
 		```javascript
-		window.SC = new SC(); // create object
+		window.SC = new SnakeCharmer(); // create object
 		window.SC._eventCookieName = 'your_cookie_name'; // change name
 		window.SC._defaultCookieExpire = 30; // change number of DAYS
 		window.SC.ini(); // init the app

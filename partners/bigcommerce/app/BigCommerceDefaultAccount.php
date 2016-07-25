@@ -24,6 +24,7 @@ class BigCommerceDefaultAccount extends BigCommerceAppAdmin {
 	private $_subThemeId;
 	private $_subThemeName;
 	private $_subThemeDescript;
+	private $_subThemeCreated;
 
 	// notification side bar
 	private $_subNotifSideBarId;
@@ -109,6 +110,9 @@ class BigCommerceDefaultAccount extends BigCommerceAppAdmin {
 	}
 
 
+	public function accountHasTheme() { return $this->_subThemeCreated; }
+
+
 	public function setSubThemeId($id = 0) { $this->_subThemeId = $id; }
 	public function setSubThemeName($name = "") { $this->_subThemeName = $name; }
 	public function setSubThemeDescript($desc = "") { $this->_subThemeDescript = $desc; }
@@ -117,6 +121,9 @@ class BigCommerceDefaultAccount extends BigCommerceAppAdmin {
 	public function setSubNotificationElmAttributes(array $data = array()) { $this->_subNotificationElmAttributes = $data; }
 	private function setSubNotificationElmAttribute($attrib, $val) { $this->_subNotificationElmAttributes[$attrib] = $val; }
 
+	public function setSubThemeCreated($bool = false) {
+		$this->_subThemeCreated = $bool;
+	}
 
 
 	/*	END ACCESSORS	*/
@@ -155,6 +162,9 @@ class BigCommerceDefaultAccount extends BigCommerceAppAdmin {
 			throw new Exception("Cannot set up defaults. Invalid SC account ID");
 		}
 
+		// check to see if theme and stuff already created
+		$this->setSubThemeCreated($this->_dbAdapter->scAccountHasTheme($aid));
+
 		$this->_subAccountName = $this->_dbAdapter->getSCAccountName($aid);
 		// TODO Handle if accountName is empty
 
@@ -176,62 +186,70 @@ class BigCommerceDefaultAccount extends BigCommerceAppAdmin {
 
 		$processFailure = false;
 
-		// set up theme
-		$this->setSubThemeId($this->_dbAdapter->setupDefaultTheme($this->getSubSCAccountId(), $this->getSubThemeName(), $this->getSubThemeDescript()));
-		if($this->getSubThemeId() < 1) {
-			$processFailure = true;
-		}
 
-		// set up notification sidebar
-		$this->setSubNotifSideBarId($this->_dbAdapter->setupDefaultNotifSidebar($this->getSubSCAccountId(), $this->_subAccountName, self::$DEFAULT_IMG_SRC));
-		if($this->getSubNotifSideBarId() < 1) {
-			$processFailure = true;
-		}
+		// only hand defaults if theme doesnt already exist
+		if(!$this->accountHasTheme()) {
 
-		// link theme and sidebar
-		$this->_dbAdapter->linkThemeSideBar($this->getSubThemeId(), $this->getSubNotifSideBarId());
+			// set up theme
+			$this->setSubThemeId($this->_dbAdapter->setupDefaultTheme($this->getSubSCAccountId(), $this->getSubThemeName(), $this->getSubThemeDescript()));
+			if($this->getSubThemeId() < 1) {
+				$processFailure = true;
+			}
 
-		// set up notification elements
-		$defaultElms = self::$DEFAULT_NOTIF_ELMS;
-		foreach($defaultElms as $idx => $elmdata) {
-			try {
+			// set up notification sidebar
+			$this->setSubNotifSideBarId($this->_dbAdapter->setupDefaultNotifSidebar($this->getSubSCAccountId(), $this->_subAccountName, self::$DEFAULT_IMG_SRC));
+			if($this->getSubNotifSideBarId() < 1) {
+				$processFailure = true;
+			}
 
-				$tmpElmId = $this->_dbAdapter->setupDefaultNotificationElm($this->getSubSCAccountId(), $elmdata);
-				$this->_subNotifElmIds[] = $tmpElmId;
-				if($elmdata["attribs"] === true) {
+			// link theme and sidebar
+			$this->_dbAdapter->linkThemeSideBar($this->getSubThemeId(), $this->getSubNotifSideBarId());
 
-					foreach($this->_subNotificationElmAttributes as $attribute => $val) {
-						try {
-							$this->_dbAdapter->addElementAttribute($tmpElmId, $attribute, $val);
-						} catch(Exception $e) {
-							$processFailure = true;
+			// set up notification elements
+			$defaultElms = self::$DEFAULT_NOTIF_ELMS;
+			foreach($defaultElms as $idx => $elmdata) {
+				try {
+
+					$tmpElmId = $this->_dbAdapter->setupDefaultNotificationElm($this->getSubSCAccountId(), $elmdata);
+					$this->_subNotifElmIds[] = $tmpElmId;
+					if($elmdata["attribs"] === true) {
+
+						foreach($this->_subNotificationElmAttributes as $attribute => $val) {
+							try {
+								$this->_dbAdapter->addElementAttribute($tmpElmId, $attribute, $val);
+							} catch(Exception $e) {
+								$processFailure = true;
+							}
 						}
+
 					}
 
+
+				} catch(Exception $e) {
+					// TODO HANDLE
+					$processFailure = true;
 				}
 
-
-			} catch(Exception $e) {
-				// TODO HANDLE
-				$processFailure = true;
 			}
 
-		}
+			// link notification elms to theme
+			foreach($this->_subNotifElmIds as $eid) {
 
-		// link notification elms to theme
-		foreach($this->_subNotifElmIds as $eid) {
+				try {
+					$this->_dbAdapter->linkThemeNotifElm($this->getSubThemeId(), $eid);
+				} catch(Exception $e) {
+					$processFailure = true;
+				}
 
-			try {
-				$this->_dbAdapter->linkThemeNotifElm($this->getSubThemeId(), $eid);
-			} catch(Exception $e) {
-				$processFailure = true;
 			}
 
-		}
 
+			if($processFailure) {
+				$this->_subDefaultsStatus = self::SUB_DEFAULTS_FAILURE;
+			} else {
+				$this->_subDefaultsStatus = self::SUB_DEFAULTS_SUCCESS;
+			}
 
-		if($processFailure) {
-			$this->_subDefaultsStatus = self::SUB_DEFAULTS_FAILURE;
 		} else {
 			$this->_subDefaultsStatus = self::SUB_DEFAULTS_SUCCESS;
 		}

@@ -263,6 +263,16 @@ class DBCon {
     }
 
 
+    /**************************
+     * HTML Entities
+     * String
+     **************************/
+    public function HtmlEntities($stmt = "") {
+		return htmlentities($stmt);
+	}
+
+
+
     /****************************
      * Gets num rows
      *****************************/

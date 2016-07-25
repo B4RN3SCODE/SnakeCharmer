@@ -46,6 +46,7 @@ $AUTHTOKEN = md5(sprintf(BC_AUTHRESP_TOKEN, $TIMESTAMP, $STORE_USER_DATA["uid"],
           <b>Get started now!</b> </p>
         <div class="bc_form_box" id="frmAuth">
 
+			<center><span>Activate or Re-Activate your account</span></center>
             <div class="col-sm-12">
               <div class="form-group">
                 <label for="domain">Domain</label>

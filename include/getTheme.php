@@ -2,6 +2,8 @@
 include("config.php");
 include("glob.php");
 include("DBCon.php");
+include("getDomain.php");
+
 
 /************************************************************
  * getTheme
@@ -19,7 +21,7 @@ include("DBCon.php");
 
 
 // request origin -- url components for validation
-$_ORIGIN_ = (isset($_SERVER["HTTP_REFERER"]) && validUrl($_SERVER["HTTP_REFERER"])) ? getDomain($_SERVER["HTTP_REFERER"]) : STR_EMP;
+$_ORIGIN_ = (isset($_SERVER["HTTP_REFERER"]) && validUrl($_SERVER["HTTP_REFERER"])) ? getDomain(parse_url($_SERVER["HTTP_REFERER"], PHP_URL_HOST)) : STR_EMP;
 
 // theme id
 $_THEME_ = (isset($_REQUEST["theme"]) && is_numeric($_REQUEST["theme"])) ? $_REQUEST["theme"] : 0;
@@ -41,8 +43,8 @@ if(!$db->Link()) {
 	end_proc("window.SC.reportRequestFaulure('Failed to connect to database');");
 }
 
-
 if(!validLicense($db, $_LICENSE_, $_ORIGIN_)) {
+	file_put_contents("/var/www/logs/getTheme.log", "------\n\n{$_ORIGIN_}\n{$_LICENSE_}\n\n----\n\n", FILE_APPEND);
 	end_proc("window.SC.reportInvalidLicense('Invalid Request');");
 }
 
@@ -224,10 +226,10 @@ function validUrl($str = STR_EMP) {
  * @param url to get domain from
  * @return string domain
  */
-function getDomain($url = STR_EMP) {
-	preg_match("/[a-z0-9\-]{1,63}\.[a-z\.]{2,10}$/", parse_url($url, PHP_URL_HOST), $_domain_tld);
-	return $_domain_tld[0];
-}
+//function getDomain($url = STR_EMP) {
+	//preg_match("/[a-z0-9\-]{1,63}\.[a-z\.]{2,10}$/", parse_url($url, PHP_URL_HOST), $_domain_tld);
+	//return $_domain_tld[0];
+//}
 
 
 

@@ -4,7 +4,7 @@
  *
  * @author		Tyler J Barnes
  * @contact		b4rn3scode@gmail.com
- * @version		1.1.2
+ * @version		1.2.2
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++/
@@ -25,7 +25,7 @@
  */
 var SnakeCharmer = function(config) {
 	// version
-	this._version = '1.1.2';
+	this._version = '1.2.2';
 	// config
 	this._config = (!!config && (typeof config).toLowerCase() == 'object') ? config : {};
 	// domain
@@ -119,7 +119,7 @@ var SnakeCharmer = function(config) {
 	// that comply with sc framework
 	this._plugins = [];
 	// plugins to load
-	this._loadPlugins = [];
+	this._loadPlugins = ['//d61fqxuabx4t4.cloudfront.net/snakecharmer/plugins/sctrackerm.js'];
 	// running plugins
 	this._loadedPlugins = [];
 
@@ -195,7 +195,20 @@ var SnakeCharmer = function(config) {
 	 * @return void
 	 */
 	this.boot = function() {
-		var scriptParams = '?license='+this._config.license+'&referrer='+encodeURIComponent(document.referrer)+'&page='+encodeURIComponent(window.location.pathname);
+		var u = "";
+		var r = document.referrer;
+		if(!!r && r.length > 0) {
+			u = (new URL(r)).host;
+		}
+		var scriptParams = '?license='+this._config.license+'&referrer='+encodeURIComponent(u)+'&page='+encodeURIComponent(window.location.pathname);
+		// check to see if cv force is applied
+		var cvForce = window.location.search.split('&');
+		for(var s = 0; s < cvForce.length; s++) {
+			var match = cvForce[s].match(/cvforce|cvmvforce/g);
+			if(match && match != null && match.length > 0) {
+				scriptParams += '&'+cvForce[s];
+			}
+		}
 		this.addScript(document.location.protocol+this._defaultBootUri+scriptParams, true);
 	};
 
@@ -388,12 +401,12 @@ var SnakeCharmer = function(config) {
 		t = (!t || t == null || t == undefined || typeof t == 'undefined') ? 'POST' : t;
 		s = (!s || s == null || s == undefined || typeof s == 'undefined') ? this.defaultAjaxSuccCb : s;
 
-		this._$.ajaxSetup({
-			cache: false,
-			headers: {
-				'Cache-Control': 'no-cache, no-store, must-revalidate'
-			}
-		});
+		//this._$.ajaxSetup({
+			//cache: false,
+			//headers: {
+				//'Cache-Control': 'no-cache, no-store, must-revalidate'
+			//}
+		//});
 		this._$.ajax({
 			url: u, data: d, type: t, error: e,	success: function(d) { s(d); }
 		});
@@ -1009,7 +1022,7 @@ var SnakeCharmer = function(config) {
 			if(!!this._notificationData.page_event[i].Criteria && !(typeof this._notificationData.page_event[i].Criteria == 'undefined') &&
 				this._notificationData.page_event[i].Criteria != null) {
 
-				criteria.push({eventId: this._notificationData.page_event[i].EID, criteria: JSON.parse(this._notificationData.page_event[i].Criteria)});
+				criteria.push({eventId: this._notificationData.page_event[i].EID, promoType: this._notificationData.page_event[i].PromoType, criteria: JSON.parse(this._notificationData.page_event[i].Criteria)});
 
 			}
 
@@ -1179,7 +1192,7 @@ var SnakeCharmer = function(config) {
 			 */
 
 
-			this._sidebar.find('.primarychat').append(this._$('<div></div>').attr('id', m_id+i.toString()).addClass('message').addClass('left').css('display', ml_display));
+			this._sidebar.find('.primarychat').append(this._$('<div></div>').attr('id', m_id+i.toString()).attr('data-evid', e.toString()).attr('data-noid', n[i].NID.toString()).addClass('message').addClass('left').css('display', ml_display));
 			this._sidebar.find('.primarychat').append(this._$('<div></div>').addClass('timestamp').text(ts).css('display', ml_display));
 			this._sidebar.find('#'+m_id+i.toString()).append('<div class="icon"><img src="'+this._themeData.sidebar.SBImg+'" /></div>');
 			this._sidebar.find('#'+m_id+i.toString()).append(this._$('<div></div>').attr('id', cb_id+i.toString()).addClass('chatbubble'));
@@ -1912,6 +1925,7 @@ var SnakeCharmer = function(config) {
 						console.log(e);
 					}
 				} else {
+					continue;
 					console.info('Tried to reinitialize plugin "'+this._plugins[p]._pluginName+'" ['+this._plugins[p]._pluginId+']');
 				}
 			}
@@ -1931,6 +1945,7 @@ var SnakeCharmer = function(config) {
 							}
 							break;
 						} else {
+							continue;
 							console.info('Tried to reinitialize plugin "'+this._plugins[p]._pluginName+'" ['+this._plugins[p]._pluginId+']');
 						}
 					}
@@ -2259,7 +2274,8 @@ if('undefined' == typeof jQuery || !jQuery) {
 	// auto initialize
 	jQuery(document).ready(function() {
 		if(typeof window.SC_AUTO_INIT == 'undefined' || window.SC_AUTO_INIT !== false) {
-			(window.SC = new SnakeCharmer()).ini();
+			window.SC = new SnakeCharmer();
+			window.SC.ini();
 		}
 	});
 	// end auto initialize

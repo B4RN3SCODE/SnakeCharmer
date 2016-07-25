@@ -2,6 +2,7 @@
 include("config.php");
 include("glob.php");
 include("DBCon.php");
+include("getDomain.php");
 
 /************************************************************
  * getNotifData
@@ -24,7 +25,7 @@ include("DBCon.php");
  *++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 // request origin -- url components for validation
-$_ORIGIN_ = (isset($_SERVER["HTTP_REFERER"]) && validUrl($_SERVER["HTTP_REFERER"])) ? getDomain($_SERVER["HTTP_REFERER"]) : STR_EMP;
+$_ORIGIN_ = (isset($_SERVER["HTTP_REFERER"]) && validUrl($_SERVER["HTTP_REFERER"])) ? getDomain(parse_url($_SERVER["HTTP_REFERER"], PHP_URL_HOST)) : STR_EMP;
 
 // license number
 $_LICENSE_ = (isset($_REQUEST["license"]) && !empty($_REQUEST["license"]) && strlen($_REQUEST["license"]) > 0) ? $_REQUEST["license"] : STR_EMP;
@@ -160,6 +161,9 @@ function getPageEventData(DBCon $db, $lic = "", $pg = "", array $dcodes = array(
 	$pg = preg_replace("~^(.+)\:\/\/(www)?\.?~", "", $pg);
 	$strip_pg = preg_replace("~^(.+)\:\/\/(www)?\.?~", "", $strip_pg);
 
+	// for pages with events to be tracked on multiple pages
+	$multi_pg = preg_replace("~(\/(.*)|\?(.*))~", "", $pg);
+
 	/* parse dcodes */
 	$parsed_codes = array();
 	foreach($dcodes as $i => $c) {
@@ -173,8 +177,14 @@ function getPageEventData(DBCon $db, $lic = "", $pg = "", array $dcodes = array(
 
 	$sql = "SELECT
 	e.Id AS EID, et.Type AS EType, e.SubjectAttr AS EIdentifier, e.SubjectVal AS EAttrVal, e.TimeOut AS TimeOut, e.Queued AS Queued,
-	p.Uri AS PageUri, CASE WHEN p.IgnoreParams > 0 THEN true ELSE false END AS IgnoreParams, 'false' as HasTriggered
+	ec.Criteria AS Criteria, ec.PromoType AS PromoType,
+	p.Uri AS PageUri, CASE WHEN p.IgnoreParams > 0 THEN true ELSE false END AS IgnoreParams,
+	CASE WHEN p.IsIndex > 0 THEN true ELSE false END AS IsIndex,
+	CASE WHEN p.MultiPage > 0 THEN true ELSE false END AS MultiPage,
+	'false' as HasTriggered
 		FROM Event AS e
+		LEFT JOIN EventCriteria AS ec
+		ON e.Id = ec.EventId
 		INNER JOIN EventType AS et
 		ON e.EventTypeId = et.Id
 		INNER JOIN PageEvent AS pe
@@ -183,7 +193,9 @@ function getPageEventData(DBCon $db, $lic = "", $pg = "", array $dcodes = array(
 		ON pe.PageId = p.Id
 		INNER JOIN Account AS a
 		ON e.AccId = a.Id
-		WHERE e.Active = 1 AND e.Del <> 1 AND et.Del <> 1 AND p.Active = 1 AND p.Del <> 1 AND a.Active = 1 AND a.Del <> 1 AND ((p.Uri LIKE '%{$pg}' AND p.IgnoreParams = 0) OR (p.Uri LIKE '%{$strip_pg}' AND p.IgnoreParams = 1)) AND a.License = '{$lic}'";
+		WHERE e.Active = 1 AND e.Del <> 1 AND et.Del <> 1 AND p.Active = 1 AND p.Del <> 1 AND a.Active = 1 AND a.Del <> 1 AND
+		((p.Uri LIKE '%{$pg}' AND p.IgnoreParams = 0) OR (p.Uri LIKE '%{$strip_pg}' AND p.IgnoreParams = 1) OR (p.Uri LIKE '%{$multi_pg}%' AND p.MultiPage = 1)) AND
+		a.License = '{$lic}'";
 
 	$db->setQueryStmt($sql);
 	if(!$db->Query()) {
@@ -355,10 +367,10 @@ function validUrl($str = STR_EMP) {
  * @param url to get domain from
  * @return string domain
  */
-function getDomain($url = STR_EMP) {
-	preg_match("/[a-z0-9\-]{1,63}\.[a-z\.]{2,10}$/", parse_url($url, PHP_URL_HOST), $_domain_tld);
-	return $_domain_tld[0];
-}
+//function getDomain($url = STR_EMP) {
+	//preg_match("/[a-z0-9\-]{1,63}\.[a-z\.]{2,10}$/", parse_url($url, PHP_URL_HOST), $_domain_tld);
+	//return $_domain_tld[0];
+//}
 
 
 

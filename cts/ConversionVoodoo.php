@@ -22,30 +22,21 @@ define('CTS_LIBRARY_PATH', CTS_ROOT_PATH . DIRECTORY_SEPARATOR . 'lib');
 define('CTS_TEST_PATH', CTS_ROOT_PATH . DIRECTORY_SEPARATOR . 'files');
 define('CTS_THIRD_PARTY_PATH', CTS_ROOT_PATH . DIRECTORY_SEPARATOR . 'third_party');
 
-// Test asset uri path
-define('CTS_ASSET_URI', '//d26kd5vu0qprd.cloudfront.net/assets/');
-//define('CTS_CDNASSET_URI', '/');
 
-
-/***************	TESTS	**********************/
-
-// landing page stuff
-define('DRF_TEST_ID', 324);
-define('DRF_BASELINE_PAGEID', 2180);
-define('DRF_DRFLAND_PAGEID', 2181);
-
-
-define('DRF_BASLINE_PAGENAME', 'baseline.php');
-
-/*************** END TESTS	********************/
+/* SnakeCharmer MV ELM Options */
+define('SC_MV_OPT_ON', 'on');
+define('SC_MV_OPT_OFF', 'off');
 
 
 // Load CTS classes
 require(CTS_LIBRARY_PATH . DIRECTORY_SEPARATOR . 'ApiResource.php');
 require(CTS_LIBRARY_PATH . DIRECTORY_SEPARATOR . 'Tracking.php');
 
+
 // Load third party scripts
-//require(CTS_THIRD_PARTY_PATH . DIRECTORY_SEPARATOR . 'Mobile_Detect.php');
+require(CTS_THIRD_PARTY_PATH . DIRECTORY_SEPARATOR . 'Mobile_Detect.php');
+
+
 
 /////////////////////////////////////////////////////
 // COMMON FUNCTIONS
